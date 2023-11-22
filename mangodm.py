@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from bson import ObjectId
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Type, TypeVar
 
 import logging
 
@@ -32,6 +32,9 @@ class DataBase:
 
 
 db: DataBase
+
+T = TypeVar('T', bound='Document')
+EmbdT = TypeVar('EmbdT', bound='EmbeddedDocument')
 
 
 class EmbeddedDocument(BaseModel):
@@ -67,7 +70,7 @@ class EmbeddedDocument(BaseModel):
         return response
 
     @classmethod
-    def document_to_model(cls, document: Dict[str, Any]) -> "EmbeddedDocument":
+    def document_to_model(cls: Type[EmbdT], document: Dict[str, Any]) -> EmbdT:
         for key, value in document.items():
             if isinstance(value, ObjectId):
                 document[key] = Document.get(id=value)
@@ -149,7 +152,7 @@ class Document(BaseModel):
         return response
 
     @classmethod
-    def document_to_model(cls, document: Dict[str, Any]) -> "Document":
+    def document_to_model(cls: Type[T], document: Dict[str, Any]) -> T:
         for key, value in document.items():
             if key == '_id':
                 document['id'] = str(value)
@@ -162,7 +165,7 @@ class Document(BaseModel):
         return cls(**document)
 
     @classmethod
-    async def get(cls, **kwargs) -> Optional["Document"]:
+    async def get(cls: Type[T], **kwargs) -> Optional[T]:
         if "id" in kwargs:
             kwargs['_id'] = ObjectId(kwargs['id'])
             del kwargs["id"]
@@ -173,13 +176,13 @@ class Document(BaseModel):
         return None
 
     @classmethod
-    async def find(cls, **kwargs) -> List["Document"]:
+    async def find(cls: Type[T], **kwargs) -> List[T]:
         if "id" in kwargs:
             kwargs['_id'] = ObjectId(kwargs['id'])
             del kwargs["id"]
 
         cursor = db.db[cls.Config.collection_name].find(kwargs)
-        models: List["Document"] = []
+        models: List[T] = []
         async for document in cursor:
             models.append(cls.document_to_model(document))
 

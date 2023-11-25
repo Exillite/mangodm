@@ -10,6 +10,7 @@
 /*.egg-info
 
 /env
-
+/__pycache__
 /.vscode
 test*.py
+*.log

@@ -29,10 +29,14 @@ EMBEDDED_COLLECTIONS: Dict[str, Type["EmbeddedDocument"]] = {}
 async def connect_to_mongo(MONGODB_URL: str, MONGODB: str):
     db.client = AsyncIOMotorClient(f"{MONGODB_URL}")
     db.db = db.client[MONGODB]
+    
+    logger.info("connect to mongo")
 
 
-def close_connection():
+def close_mongo_connection():
     db.client.close()
+        
+    logger.info("close mongo connection")
 
 
 T = TypeVar('T', bound='Document')
@@ -52,7 +56,6 @@ class EmbeddedDocument(BaseModel):
         }
 
         for key, value in model_dict.items():
-            print("!!!", value)
             if isinstance(value, Document):
                 if not value.is_saved():
                     logger.error("Subdocument not saved")
@@ -83,6 +86,8 @@ class EmbeddedDocument(BaseModel):
     async def document_to_model(cls: Type[EmbdT], document: Dict[str, Any]) -> EmbdT:
         for key, value in document.items():
             if isinstance(value, dict):
+                if '_type' not in value:
+                    continue
                 if value['_type'] == 'subdocument':
                     document[key] = await Document.from_subdocument(value)
                 elif value['_type'] == 'embedded_document':
@@ -209,6 +214,8 @@ class Document(BaseModel):
         del document['_id']
         for key, value in document.items():
             if isinstance(value, dict):
+                if '_type' not in value:
+                    continue
                 if value['_type'] == 'subdocument':
                     document[key] = await Document.from_subdocument(value)
                 elif value['_type'] == 'embedded_document':

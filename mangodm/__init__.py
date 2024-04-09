@@ -1,1 +1,1 @@
-from .main import connect_to_mongo, close_connection, Document, EmbeddedDocument
+from .main import connect_to_mongo, close_mongo_connection, Document, EmbeddedDocument, db
